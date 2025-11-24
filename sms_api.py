@@ -1,7 +1,5 @@
 import requests
-import json
 import os
-
 
 SERVER = "https://sms-spider.com"
 API_KEY = os.environ.get("SMS_API_KEY")
@@ -9,7 +7,6 @@ API_KEY = os.environ.get("SMS_API_KEY")
 USE_SPECIFIED = 0
 USE_ALL_DEVICES = 1
 USE_ALL_SIMS = 2
-
 
 def send_request(url, data):
     response = requests.post(url, data=data)
@@ -23,10 +20,8 @@ def send_request(url, data):
     else:
         raise Exception(json_data["error"]["message"])
 
-
 def sendSingleMessage(number, message, device=0, schedule=None, isMMS=False, attachments=None, prioritize=False):
     url = f"{SERVER}/services/send.php"
-
     payload = {
         "number": number,
         "message": message,
@@ -37,5 +32,4 @@ def sendSingleMessage(number, message, device=0, schedule=None, isMMS=False, att
         "attachments": attachments,
         "prioritize": 1 if prioritize else 0,
     }
-
     return send_request(url, payload)["messages"][0]
