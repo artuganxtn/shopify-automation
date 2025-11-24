@@ -4,13 +4,16 @@ import hashlib
 import base64
 import json
 import os
-
+from datetime import datetime, timedelta
 from sms_api import sendSingleMessage
 
 app = Flask(__name__)
 
+# -----------------------------
+# Environment Variables
+# -----------------------------
 SHOPIFY_SECRET = os.environ.get("SHOPIFY_SECRET")  # Webhook secret
-
+SMS_SENDER_DEVICE = int(os.environ.get("SMS_DEVICE", 0))  # SMS-Spider device ID
 
 # -----------------------------
 # Verify Shopify Webhook
@@ -27,6 +30,22 @@ def verify_webhook(req):
 
     return hmac.compare_digest(received_hmac, calculated_hmac)
 
+# -----------------------------
+# Test Route
+# -----------------------------
+@app.get("/")
+def home():
+    return "Shopify SMS Automation is running! 🚀"
+
+# -----------------------------
+# Helper: Send SMS
+# -----------------------------
+def send_sms(phone, message):
+    try:
+        sendSingleMessage(phone, message, device=SMS_SENDER_DEVICE)
+        print(f"✅ SMS sent to {phone}: {message}")
+    except Exception as e:
+        print(f"❌ SMS error for {phone}: {e}")
 
 # -----------------------------
 # Webhook Endpoint
@@ -42,21 +61,29 @@ def shopify_webhook():
     print("📩 Received Shopify Event:", event)
     print("📦 Payload:", json.dumps(data, indent=2))
 
-    # Example: If cart is created and phone exists → SMS
-    if event == "carts/create":
-        buyer_phone = data.get("buyer_identity", {}).get("phone")
+    # -----------------------------
+    # Order Created (Paid/Confirmed)
+    # -----------------------------
+    if event in ["orders/create", "orders/paid"]:
+        buyer_name = data.get("customer", {}).get("first_name", "")
+        buyer_phone = data.get("customer", {}).get("phone")
 
         if buyer_phone:
-            try:
-                sendSingleMessage(
-                    buyer_phone,
-                    "Thank you for visiting! Your cart has been saved 💬"
-                )
-            except Exception as ex:
-                print("SMS Error:", ex)
+            message = f"مرحباً {buyer_name}، شكراً لطلبك! تم تأكيد طلبك وسيتم شحنه قريباً 🚚"
+            send_sms(buyer_phone, message)
+
+    # -----------------------------
+    # Order Fulfilled / Shipped
+    # -----------------------------
+    if event == "orders/fulfilled":
+        buyer_name = data.get("customer", {}).get("first_name", "")
+        buyer_phone = data.get("customer", {}).get("phone")
+
+        if buyer_phone:
+            message = f"مرحباً {buyer_name}، طلبك الآن في الطريق! 📦 شكراً لاختيارك متجرنا."
+            send_sms(buyer_phone, message)
 
     return jsonify({"status": "success"}), 200
-
 
 # -----------------------------
 # Deployment Server
