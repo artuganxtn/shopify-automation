@@ -1,6 +1,8 @@
 import requests
 import os
+from dotenv import load_dotenv
 
+load_dotenv()  # Load environment variables from .env
 SERVER = "https://sms-spider.com"
 API_KEY = os.environ.get("SMS_API_KEY")
 
@@ -33,3 +35,4 @@ def sendSingleMessage(number, message, device=0, schedule=None, isMMS=False, att
         "prioritize": 1 if prioritize else 0,
     }
     return send_request(url, payload)["messages"][0]
+
